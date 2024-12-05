@@ -115,10 +115,24 @@ vim.opt.showmode = false
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
+-- vim.g.clipboard = {
+--   name = 'win32yank',
+--   copy = {
+--     ['+'] = 'win32yank.exe -i --crlf',
+--     ['*'] = 'win32yank.exe -i --crlf',
+--   },
+--   paste = {
+--     ['+'] = 'win32yank.exe -o --lf',
+--     ['*'] = 'win32yank.exe -o --lf',
+--   },
+--   cache_enabled = 0,
+-- }
+
+--  NOTE: (Elias) this was original code from kickstart.nvim
 vim.schedule(function()
   vim.opt.clipboard = 'unnamedplus'
 end)
-
+--
 -- Enable break indent
 vim.opt.breakindent = true
 
@@ -147,7 +161,7 @@ vim.opt.splitbelow = true
 --  See `:help 'list'`
 --  and `:help 'listchars'`
 vim.opt.list = true
-vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
+vim.opt.listchars = { tab = '   ', trail = '·', nbsp = '␣' }
 
 -- Preview substitutions live, as you type!
 vim.opt.inccommand = 'split'
@@ -455,6 +469,7 @@ require('lazy').setup({
   {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
+    event = 'BufReadPre', -- This Line was added by Elias to improve startup time by lazy loading
     dependencies = {
       -- Automatically install LSPs and related tools to stdpath for Neovim
       { 'williamboman/mason.nvim', config = true }, -- NOTE: Must be loaded before dependants
@@ -606,7 +621,7 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
+        clangd = {},
         -- gopls = {},
         pyright = {},
         -- rust_analyzer = {},
@@ -701,10 +716,10 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
+        python = { 'isort', 'black' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        javascript = { 'prettierd', 'prettier', stop_after_first = true },
       },
     },
   },
@@ -894,6 +909,7 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    event = { 'BufRead', 'BufNewFile' }, -- This line was added by Elias to improve startup time by lazy loading
     build = ':TSUpdate',
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
@@ -1003,5 +1019,23 @@ end, {})
 -- Keybinding to toggle transparency using transparent.nvim
 vim.keymap.set('n', '<leader>tt', ':TransparentToggle<CR>', { desc = 'Toggle Transparency' })
 
--- The line beneath this is called `modeline`. See `:help modeline`
--- vim: ts=2 sts=2 sw=2 et
+-- Copy build command to clipboard
+vim.keymap.set('n', '<leader>cc', function()
+  vim.fn.setreg('+', 'gcc main.c -o game.exe -O1 -Wall -std=c99 -Wno-missing-braces -I include/ -L lib/ -lraylib -lopengl32 -lgdi32 -lwinmm')
+end, { desc = 'Copy build command to clipboard', noremap = true, silent = true })
+
+-- set the title of your current tab in wezterm to the buffer you are editing
+vim.opt.title = true
+vim.opt.titlestring = '%t - nvim' -- Customize the title format
+
+vim.o.tabstop = 4
+vim.o.softtabstop = 4
+vim.o.shiftwidth = 4
+vim.o.expandtab = true
+
+-- run javascript code
+vim.api.nvim_set_keymap('n', '<leader>tr', ':term node %<CR>', { noremap = true, silent = true })
+
+
+-- The line beneath this is called `modeline`. See `:help modeline
+-- -- vim: ts=2 sts=2 sw=2 et
