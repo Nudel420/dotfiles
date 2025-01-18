@@ -427,6 +427,13 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
       vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
 
+      -- NOTE: Eli: Custom Keymap for fuzzy finding in G:/Programming
+      vim.keymap.set('n', '<leader>sp', function()
+        builtin.find_files {
+          cwd = 'G:\\Programming',
+        }
+      end, { desc = '[S]earch G:/[P]rogramming' })
+
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
         -- You can pass additional configuration to Telescope to change the theme, layout, etc.
@@ -624,7 +631,8 @@ require('lazy').setup({
         clangd = {},
         -- gopls = {},
         pyright = {},
-        -- rust_analyzer = {},
+        rust_analyzer = {},
+        zls = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -941,9 +949,21 @@ require('lazy').setup({
     'xiyaowong/transparent.nvim',
   },
   {
+    -- A minimalist Neovim plugin that auto pairs & closes brackets
     'm4xshen/autoclose.nvim',
     config = function()
       require('autoclose').setup()
+    end,
+  },
+  {
+    'WhoIsSethDaniel/toggle-lsp-diagnostics.nvim',
+    config = function()
+      require('toggle_lsp_diagnostics').init()
+
+      -- nmap <leader>tld  <Plug>(toggle-lsp-diag)
+      vim.keymap.set('n', '<leader>td', function()
+        require('toggle_lsp_diagnostics').toggle_diagnostics()
+      end, { desc = 'Toggle LSP diagnostics' })
     end,
   },
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
@@ -1018,7 +1038,6 @@ end, {})
 
 -- Keybinding to toggle transparency using transparent.nvim
 vim.keymap.set('n', '<leader>tt', ':TransparentToggle<CR>', { desc = 'Toggle Transparency' })
-
 -- Copy build command to clipboard
 vim.keymap.set('n', '<leader>cc', function()
   vim.fn.setreg('+', 'gcc main.c -o game.exe -O1 -Wall -std=c99 -Wno-missing-braces -I include/ -L lib/ -lraylib -lopengl32 -lgdi32 -lwinmm')
@@ -1036,6 +1055,114 @@ vim.o.expandtab = true
 -- run javascript code
 vim.api.nvim_set_keymap('n', '<leader>tr', ':term node %<CR>', { noremap = true, silent = true })
 
+-- floating terminal
+local state = {
+  floating = {
+    buf = -1,
+    win = -1,
+  },
+}
 
+local function create_floating_window(opts)
+  opts = opts or {}
+  local width = opts.width or math.floor(vim.o.columns * 0.8)
+  local height = opts.height or math.floor(vim.o.lines * 0.8)
+
+  -- Calculate the position to center the window
+  local col = math.floor((vim.o.columns - width) / 2)
+  local row = math.floor((vim.o.lines - height) / 2)
+
+  -- Create a buffer
+  local buf = nil
+  if vim.api.nvim_buf_is_valid(opts.buf) then
+    buf = opts.buf
+  else
+    buf = vim.api.nvim_create_buf(false, true) -- No file, scratch buffer
+  end
+
+  -- Define window configuration
+  local win_config = {
+    relative = 'editor',
+    width = width,
+    height = height,
+    col = col,
+    row = row,
+    style = 'minimal', -- No borders or extra UI elements
+    border = 'rounded',
+  }
+
+  -- Create the floating window
+  local win = vim.api.nvim_open_win(buf, true, win_config)
+
+  return { buf = buf, win = win }
+end
+
+local toggle_terminal = function()
+  if not vim.api.nvim_win_is_valid(state.floating.win) then
+    state.floating = create_floating_window { buf = state.floating.buf }
+    if vim.bo[state.floating.buf].buftype ~= 'terminal' then
+      vim.cmd.terminal()
+    end
+    vim.cmd 'startinsert'
+  else
+    vim.api.nvim_win_hide(state.floating.win)
+  end
+end
+
+-- vim command to build simple raylib project
+vim.g.c_build_command = 'gcc main.c -o game.exe -O1 -Wall -std=c99 -Wno-missing-braces -I include/ -L lib/ -lraylib -lopengl32 -lgdi32 -lwinmm'
+
+-- Function to set the build command
+vim.keymap.set('n', '<leader>cs', [[:lua SetBuildCommand()<CR>]], { desc = '[S]et Build Command' })
+
+-- set current build command
+function SetBuildCommand()
+  vim.g.c_build_command = vim.fn.input('Enter Build Command: ', vim.g.c_build_command)
+  print('\nBuild command set to: ' .. vim.g.c_build_command)
+end
+
+-- Function to run the build command
+vim.keymap.set('n', '<leader>cb', [[:lua RunBuildCommand()<CR>]], { desc = '[B]uild with Command' })
+
+-- run build command in floating terminal
+function RunBuildCommand()
+  if vim.g.c_build_command == nil or vim.g.c_build_command == '' then
+    print 'No build command set. Use <leader>cs to set one.'
+    return
+  end
+
+  -- Ensure floating terminal is open
+  if not vim.api.nvim_win_is_valid(state.floating.win) then
+    state.floating = create_floating_window { buf = state.floating.buf }
+    if vim.bo[state.floating.buf].buftype ~= 'terminal' then
+      vim.cmd.terminal()
+    end
+  end
+
+  -- Send the build command to the terminal
+  vim.fn.chansend(vim.b.terminal_job_id, vim.g.c_build_command .. '\r\n')
+end
+
+-- keymap to run the game.exe put out by the build command
+vim.keymap.set('n', '<leader>cr', '[[:lua RunGame() <CR>]]', { desc = '[R]un Game.exe' })
+
+function RunGame()
+  vim.fn.chansend(vim.b.terminal_job_id, 'game.exe' .. '\r\n')
+end
+
+-- Create a floating window with default dimensions
+vim.api.nvim_create_user_command('FloaTerminal', toggle_terminal, {})
+
+vim.keymap.set('n', '<leader>ft', toggle_terminal, { desc = 'Toggle [F]loating Terminal' })
+
+-- vim command to run current line of lua
+vim.keymap.set('n', '<leader>lx', ':.lua<CR>')
+
+-- copies text and deletes selected under cursor, but the copy register does remain the same as before deleting watch Primes Advanced Editor Motions #1 minute 6 for explanation
+vim.keymap.set('x', '<leader>p', '"_dP')
+
+vim.keymap.set('i', '<C-s>', function()
+  vim.lsp.buf.signature_help()
+end)
 -- The line beneath this is called `modeline`. See `:help modeline
 -- -- vim: ts=2 sts=2 sw=2 et
