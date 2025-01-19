@@ -966,6 +966,14 @@ require('lazy').setup({
       end, { desc = 'Toggle LSP diagnostics' })
     end,
   },
+  { 'mfussenegger/nvim-dap' },
+
+  { 'rcarriga/nvim-dap-ui' },
+
+  { 'theHamsta/nvim-dap-virtual-text' },
+
+  { 'nvim-telescope/telescope-dap.nvim' },
+
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
   -- place them in the correct locations.
@@ -975,7 +983,7 @@ require('lazy').setup({
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
-  -- require 'kickstart.plugins.debug',
+  require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
   -- require 'kickstart.plugins.autopairs',
@@ -1038,10 +1046,6 @@ end, {})
 
 -- Keybinding to toggle transparency using transparent.nvim
 vim.keymap.set('n', '<leader>tt', ':TransparentToggle<CR>', { desc = 'Toggle Transparency' })
--- Copy build command to clipboard
-vim.keymap.set('n', '<leader>cc', function()
-  vim.fn.setreg('+', 'gcc main.c -o game.exe -O1 -Wall -std=c99 -Wno-missing-braces -I include/ -L lib/ -lraylib -lopengl32 -lgdi32 -lwinmm')
-end, { desc = 'Copy build command to clipboard', noremap = true, silent = true })
 
 -- set the title of your current tab in wezterm to the buffer you are editing
 vim.opt.title = true
@@ -1110,7 +1114,17 @@ local toggle_terminal = function()
 end
 
 -- vim command to build simple raylib project
-vim.g.c_build_command = 'gcc main.c -o game.exe -O1 -Wall -std=c99 -Wno-missing-braces -I include/ -L lib/ -lraylib -lopengl32 -lgdi32 -lwinmm'
+if vim.loop.os_uname().sysname == 'Windows_NT' then
+  -- Windows Path
+  vim.g.c_build_command = 'gcc main.c -o game.exe -O1 -Wall -std=c99 -Wno-missing-braces -I include/ -L windows/lib/ -lraylib -lopengl32 -lgdi32 -lwinmm'
+else
+  -- Linux Path
+  vim.g.c_build_command = 'gcc main.c -o game -O1 -Wall -std=c99 -Wno-missing-braces -I include/ -L windows/lib/ -lraylib -lGL -lm -lpthread -ldl -lrt -lX11'
+end
+-- Copy build command to clipboard
+vim.keymap.set('n', '<leader>cc', function()
+  vim.fn.setreg('+', vim.g.c_build_command)
+end, { desc = 'Copy build command to clipboard', noremap = true, silent = true })
 
 -- Function to set the build command
 vim.keymap.set('n', '<leader>cs', [[:lua SetBuildCommand()<CR>]], { desc = '[S]et Build Command' })
@@ -1147,7 +1161,11 @@ end
 vim.keymap.set('n', '<leader>cr', '[[:lua RunGame() <CR>]]', { desc = '[R]un Game.exe' })
 
 function RunGame()
-  vim.fn.chansend(vim.b.terminal_job_id, 'game.exe' .. '\r\n')
+  if vim.loop.os_uname().sysname == 'Windows_NT' then
+    vim.fn.chansend(vim.b.terminal_job_id, 'game.exe' .. '\r\n')
+  else
+    vim.fn.chansend(vim.b.terminal_job_id, './game' .. '\r\n')
+  end
 end
 
 -- Create a floating window with default dimensions
