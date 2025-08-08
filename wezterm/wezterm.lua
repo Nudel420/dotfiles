@@ -1,6 +1,6 @@
 -- Pull in the wezterm API
 local wezterm = require("wezterm")
-local kanso = require("kanso-ink")
+
 -- This will hold the configuration.
 local config = wezterm.config_builder()
 local act = wezterm.action
@@ -23,7 +23,74 @@ config.enable_tab_bar = true
 config.use_fancy_tab_bar = false
 config.tab_bar_at_bottom = true
 config.tab_max_width = 32
-config.colors = kanso.colors
+force_reverse_video_cursor = true
+config.colors = {
+	foreground = "#C5C9C7",
+	background = "#14171d",
+
+	cursor_bg = "#C5C9C7",
+	cursor_fg = "#14171d",
+	cursor_border = "#C5C9C7",
+
+	selection_fg = "#C5C9C7",
+	selection_bg = "#393B44",
+
+	scrollbar_thumb = "#393B44",
+	split = "#393B44",
+
+	ansi = {
+		"#14171d",
+		"#C4746E",
+		"#8A9A7B",
+		"#C4B28A",
+		"#8BA4B0",
+		"#A292A3",
+		"#8EA4A2",
+		"#A4A7A4",
+	},
+	brights = {
+		"#A4A7A4",
+		"#E46876",
+		"#87A987",
+		"#E6C384",
+		"#7FB4CA",
+		"#938AA9",
+		"#7AA89F",
+		"#C5C9C7",
+	},
+	tab_bar = {
+		background = "#1f1f28", -- dark neutral base
+
+		active_tab = {
+			bg_color = "#2a2a37", -- slightly lighter than background
+			fg_color = "#dcdfe6", -- soft light text
+			intensity = "Bold",
+			underline = "None",
+			italic = false,
+			strikethrough = false,
+		},
+
+		inactive_tab = {
+			bg_color = "#111111", -- same as background
+			fg_color = "#8f8f9f", -- muted text
+		},
+
+		inactive_tab_hover = {
+			bg_color = "#494954", -- subtle highlight on hover
+			fg_color = "#a0a0b0",
+		},
+
+		new_tab = {
+			bg_color = "#080808",
+			fg_color = "#8f8f9f",
+		},
+
+		new_tab_hover = {
+			bg_color = "#494954",
+			fg_color = "#a0a0b0",
+		},
+	},
+}
 
 -- make inactive pain be less visible
 config.inactive_pane_hsb = {
