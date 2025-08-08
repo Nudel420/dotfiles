@@ -8,8 +8,15 @@ local mux = wezterm.mux
 
 -- font and color-scheme
 config.font_size = 13.0
-config.font = wezterm.font("JetBrains Mono", { weight = "Regular" })
+config.font = wezterm.font("JetBrainsMonoNL NF")
 config.color_scheme = "Arthur"
+
+config.window_padding = {
+	left = 0,
+	right = 0,
+	top = 0,
+	bottom = 0,
+}
 
 -- tab bar settings
 config.enable_tab_bar = true
@@ -89,8 +96,8 @@ config.colors = {
 
 -- make inactive pain be less visible
 config.inactive_pane_hsb = {
-	saturation = 0.8,
-	brightness = 0.7,
+	saturation = 0.6,
+	brightness = 0.5,
 }
 -- set background image + make it darker for better visibility
 config.window_background_image = "C:\\Users\\elias\\Pictures\\Hintergründe\\island-night.png"
@@ -101,10 +108,20 @@ config.window_background_image_hsb = {
 	hue = 0.97,
 }
 
-config.window_decorations = "NONE | RESIZE"
+-- config.window_decorations = "NONE | RESIZE"
 
 config.leader = { key = "q", mods = "CTRL", timeout_milliseconds = 3000 }
 config.keys = {
+	-- open neovim in G:/Programming
+	{
+		key = "v",
+		mods = "LEADER",
+		action = act.SwitchToWorkspace({
+			spawn = {
+				args = { "nvim", "G:\\Programming" },
+			},
+		}),
+	},
 	-- activate CopyMode for wezterm
 	{
 		key = "y",
@@ -151,15 +168,12 @@ config.keys = {
 			one_shot = false,
 		}),
 	},
-	-- activate activate pane mode to switch between active panes with hjkl
-	{
-		key = "p",
-		mods = "LEADER",
-		action = act.ActivateKeyTable({
-			name = "activate_pane",
-			timeout_milliseconds = 1000,
-		}),
-	},
+	-- switch between panes with <LEADER> + hjkl
+	{ key = "h", mods = "LEADER", action = act.ActivatePaneDirection("Left") },
+	{ key = "l", mods = "LEADER", action = act.ActivatePaneDirection("Right") },
+	{ key = "k", mods = "LEADER", action = act.ActivatePaneDirection("Up") },
+	{ key = "j", mods = "LEADER", action = act.ActivatePaneDirection("Down") },
+
 	-- set name for current tab
 	{
 		key = ",",
@@ -234,20 +248,6 @@ config.key_tables = {
 		-- Cancel the mode by pressing escape
 		{ key = "Escape", action = "PopKeyTable" },
 	},
-
-	activate_pane = {
-		{ key = "LeftArrow", action = act.ActivatePaneDirection("Left") },
-		{ key = "h", action = act.ActivatePaneDirection("Left") },
-
-		{ key = "RightArrow", action = act.ActivatePaneDirection("Right") },
-		{ key = "l", action = act.ActivatePaneDirection("Right") },
-
-		{ key = "UpArrow", action = act.ActivatePaneDirection("Up") },
-		{ key = "k", action = act.ActivatePaneDirection("Up") },
-
-		{ key = "DownArrow", action = act.ActivatePaneDirection("Down") },
-		{ key = "j", action = act.ActivatePaneDirection("Down") },
-	},
 }
 
 -- bind LEADER + number to switch between tabs
@@ -282,6 +282,16 @@ wezterm.on("update-right-status", function(window, _)
 		{ Text = SOLID_LEFT_ARROW },
 	}))
 end)
--- and finally, return the configuration to wezterm
+-- start wezterm in maximized mode
+wezterm.on("gui-startup", function(cmd)
+	local tab, pane, window = mux.spawn_window(cmd or {})
+	window:gui_window():maximize()
+end)
 
+-- automatically reload the config on changes
+config.automatically_reload_config = true
+
+-- adjust line height to remove the gap above the wezterm tabs when neovim is open for example
+config.line_height = 1
+-- and finally, return the configuration to wezterm
 return config

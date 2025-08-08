@@ -633,14 +633,14 @@ require('lazy').setup({
         pyright = {},
         rust_analyzer = {},
         zls = {},
+        angularls = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
-        --
+        ts_ls = {},
 
         lua_ls = {
           -- cmd = {...},
@@ -854,6 +854,10 @@ require('lazy').setup({
     opts = {
       transparent_mode = true,
     },
+  },
+  { -- You can easily change to a different colorscheme.
+    'rose-pine/neovim',
+    name = 'rose-pine',
   },
   { -- You can easily change to a different colorscheme.
     -- Change the name of the colorscheme plugin below, and then
@@ -1116,10 +1120,10 @@ end
 -- vim command to build simple raylib project
 if vim.loop.os_uname().sysname == 'Windows_NT' then
   -- Windows Path
-  vim.g.c_build_command = 'gcc main.c -o game.exe -O1 -Wall -std=c99 -Wno-missing-braces -I include/ -L windows/lib/ -lraylib -lopengl32 -lgdi32 -lwinmm'
+  vim.g.c_build_command = 'clang main.c -g -gcodeview -Wl,--pdb= windows/lib/libraylib.a -lopengl32 -lgdi32 -lwinmm -I /include =address -o game.exe'
 else
   -- Linux Path
-  vim.g.c_build_command = 'gcc main.c -o game -O1 -Wall -std=c99 -Wno-missing-braces -I include/ -L windows/lib/ -lraylib -lGL -lm -lpthread -ldl -lrt -lX11'
+  vim.g.c_build_command = 'gcc main.c -o game -O1 -Wall -std=c99 -Wno-missing-braces -I include/ -L linux/lib/ -lraylib -lGL -lm -lpthread -ldl -lrt -lX11'
 end
 -- Copy build command to clipboard
 vim.keymap.set('n', '<leader>cc', function()
@@ -1154,7 +1158,7 @@ function RunBuildCommand()
   end
 
   -- Send the build command to the terminal
-  vim.fn.chansend(vim.b.terminal_job_id, vim.g.c_build_command .. '\r\n')
+  vim.fn.chansend(vim.b.terminal_job_id, vim.g.c_build_command .. '\r')
 end
 
 -- keymap to run the game.exe put out by the build command
@@ -1162,9 +1166,9 @@ vim.keymap.set('n', '<leader>cr', '[[:lua RunGame() <CR>]]', { desc = '[R]un Gam
 
 function RunGame()
   if vim.loop.os_uname().sysname == 'Windows_NT' then
-    vim.fn.chansend(vim.b.terminal_job_id, 'game.exe' .. '\r\n')
+    vim.fn.chansend(vim.b.terminal_job_id, 'game.exe' .. '\r')
   else
-    vim.fn.chansend(vim.b.terminal_job_id, './game' .. '\r\n')
+    vim.fn.chansend(vim.b.terminal_job_id, './game' .. '\r')
   end
 end
 
@@ -1182,5 +1186,14 @@ vim.keymap.set('x', '<leader>p', '"_dP')
 vim.keymap.set('i', '<C-s>', function()
   vim.lsp.buf.signature_help()
 end)
+
+-- ELI: Disable automatic comment continuation
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = '*',
+  callback = function()
+    vim.opt.formatoptions:remove { 'r', 'o' }
+  end,
+})
+
 -- The line beneath this is called `modeline`. See `:help modeline
 -- -- vim: ts=2 sts=2 sw=2 et
